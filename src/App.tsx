@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { fetchCrimesForQuery } from './api/crimeApi'
+import { useEffect, useState } from 'react'
+import { fetchCrimesForQueries } from './api/crimeApi'
 import { lookupPostcodes } from './api/postcodeApi'
 import { CrimeTable } from './components/CrimeTable'
+import { CrimeBreakdown } from './components/CrimeBreakdown'
 import { MetricCard } from './components/MetricCard'
 import { SearchForm } from './components/SearchForm'
 import type { CrimeRecord } from './types/crime'
@@ -9,6 +10,7 @@ import type { SearchCriteria } from './types/search'
 import { getMostCommon, summariseCrimes } from './utils/aggregation'
 import { parsePostcodes } from './utils/postcodes'
 import { getMonthsInRange } from './utils/months'
+import { buildSearchQuery, getCriteriaFromSearch } from './utils/searchParams'
 import './App.css'
 
 function getCurrentMonth() {
@@ -21,11 +23,9 @@ function formatLabel(value: string | null) {
 
 function App() {
   const currentMonth = getCurrentMonth()
-  const [criteria, setCriteria] = useState<SearchCriteria>({
-    postcodes: '',
-    from: currentMonth,
-    to: currentMonth,
-  })
+  const [criteria, setCriteria] = useState<SearchCriteria>(() =>
+    getCriteriaFromSearch(window.location.search, currentMonth),
+  )
   const [hasSearched, setHasSearched] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -43,16 +43,15 @@ function App() {
     }))
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const postcodes = parsePostcodes(criteria.postcodes)
+  async function runSearch(searchCriteria: SearchCriteria, updateUrl: boolean) {
+    const postcodes = parsePostcodes(searchCriteria.postcodes)
 
     if (postcodes.length === 0) {
       setErrorMessage('Enter at least one postcode to search.')
       return
     }
 
-    const months = getMonthsInRange(criteria.from, criteria.to)
+    const months = getMonthsInRange(searchCriteria.from, searchCriteria.to)
 
     if (months.length === 0) {
       setErrorMessage('Choose a valid date range with the start before the end.')
@@ -61,6 +60,10 @@ function App() {
 
     setIsSearching(true)
     setErrorMessage('')
+
+    if (updateUrl) {
+      window.history.pushState({}, '', buildSearchQuery(searchCriteria))
+    }
 
     try {
       const { locations, invalidPostcodes } = await lookupPostcodes(postcodes)
@@ -72,9 +75,7 @@ function App() {
       const queries = locations.flatMap((location) =>
         months.map((month) => ({ ...location, month })),
       )
-      const crimeResults = await Promise.allSettled(
-        queries.map((query) => fetchCrimesForQuery(query)),
-      )
+      const crimeResults = await fetchCrimesForQueries(queries)
       const successfulResults = crimeResults.flatMap((result) =>
         result.status === 'fulfilled' ? result.value : [],
       )
@@ -105,6 +106,23 @@ function App() {
       setIsSearching(false)
     }
   }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    void runSearch(criteria, true)
+  }
+
+  useEffect(() => {
+    const initialCriteria = getCriteriaFromSearch(window.location.search, currentMonth)
+
+    if (parsePostcodes(initialCriteria.postcodes).length > 0) {
+      const searchTimer = window.setTimeout(() => {
+        void runSearch(initialCriteria, false)
+      }, 0)
+
+      return () => window.clearTimeout(searchTimer)
+    }
+  }, [currentMonth])
 
   return (
     <div className="app-shell">
@@ -159,6 +177,10 @@ function App() {
               detail={mostCommonOutcome ? `${crimeSummary.outcomeCounts[mostCommonOutcome]} records` : 'Outcome data will appear here'}
             />
           </div>
+          <CrimeBreakdown
+            categoryCounts={crimeSummary.categoryCounts}
+            outcomeCounts={crimeSummary.outcomeCounts}
+          />
         </section>
 
         <section className="results-panel" id="results" aria-live="polite" aria-labelledby="results-heading">
@@ -169,7 +191,16 @@ function App() {
             </div>
             <p className="table-hint">Select a postcode, crime type or outcome to filter</p>
           </div>
-          {hasSearched ? (
+          {hasSearched && crimes.length === 0 ? (
+            <div className="empty-results no-data-results">
+              <div className="empty-icon" aria-hidden="true">i</div>
+              <h3>No crime records available for this period.</h3>
+              <p>
+                No records were returned for {criteria.from} to {criteria.to}.
+                Recent months may not be published yet, so try an earlier date range.
+              </p>
+            </div>
+          ) : hasSearched ? (
             <CrimeTable crimes={crimes} />
           ) : (
             <div className="empty-results">

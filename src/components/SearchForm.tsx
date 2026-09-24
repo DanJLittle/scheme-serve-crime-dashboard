@@ -50,6 +50,7 @@ export function SearchForm({
           />
         </label>
       </div>
+      <small className="date-help">Recent months may not be published yet.</small>
 
       <button type="submit" disabled={isSearching}>
         {isSearching ? 'Finding areas...' : 'Search crimes'}{' '}
