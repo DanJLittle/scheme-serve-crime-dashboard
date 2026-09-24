@@ -15,7 +15,12 @@ export async function lookupPostcode(postcode: string): Promise<PostcodeLocation
 
   const result = (await response.json()) as PostcodeApiResponse
 
-  if (result.status !== 'match' || !result.data) {
+  if (
+    result.status !== 'match' ||
+    !result.data ||
+    !result.data.latitude ||
+    !result.data.longitude
+  ) {
     throw new Error(`Could not find postcode ${postcode}`)
   }
 

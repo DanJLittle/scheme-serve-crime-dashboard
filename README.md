@@ -38,10 +38,11 @@ Implemented:
 - Latitude and longitude conversion for valid postcodes
 - Loading and error feedback
 - Partial postcode failure handling: valid postcodes continue when another is invalid
+- Police API requests for each resolved postcode and selected month
+- Total crime count from returned records
 
 Not implemented yet:
 
-- UK Police crime API requests
 - Crime aggregation and summary metrics
 - Crime results table and filtering
 - URL query-string synchronisation
@@ -58,6 +59,8 @@ Form input
   -> lookupPostcodes()
   -> Get The Data API
   -> typed PostcodeLocation values
+  -> Police API requests for each postcode/month
+  -> typed CrimeRecord values
   -> React state
   -> loading, error, or success UI
 ```
@@ -102,10 +105,11 @@ The UI uses a restrained teal accent, deep green contrast panel, cool off-white 
 - **Client-side aggregation:** aggregating the returned records in the browser keeps the app simple and transparent, but it would be less suitable for very large result sets.
 - **Partial failure handling:** keeping valid postcode results makes the app more resilient, but the user must review an error message when part of a search is incomplete.
 - **Direct browser API calls:** this keeps the project small and demonstrates frontend API integration, but a production system might use a backend proxy for caching, security, rate limiting, and consistent API access.
+- **One request per postcode/month:** this matches the Police API contract and keeps the date range explicit, but a long date range or many postcodes can produce many requests.
 
 ### What I am not happy with yet
 
-The current submission does not yet show real crime records because the Police API integration is the next milestone. The visual shell is in place, but the dashboard will not demonstrate its full value until the API data is fetched, aggregated, and rendered in the table.
+The current submission fetches real crime records and displays their total, but does not yet render the detailed records in the required filterable table. That is the next milestone.
 
 ## Next implementation milestone
 

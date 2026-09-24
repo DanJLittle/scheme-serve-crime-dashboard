@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { fetchCrimesForQuery } from './api/crimeApi'
 import { lookupPostcodes } from './api/postcodeApi'
+import type { CrimeRecord } from './types/crime'
 import { parsePostcodes } from './utils/postcodes'
+import { getMonthsInRange } from './utils/months'
 import './App.css'
 
 type SearchCriteria = {
@@ -24,6 +27,7 @@ function App() {
   const [isSearching, setIsSearching] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [resolvedPostcodes, setResolvedPostcodes] = useState(0)
+  const [crimes, setCrimes] = useState<CrimeRecord[]>([])
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target
@@ -42,6 +46,13 @@ function App() {
       return
     }
 
+    const months = getMonthsInRange(criteria.from, criteria.to)
+
+    if (months.length === 0) {
+      setErrorMessage('Choose a valid date range with the start before the end.')
+      return
+    }
+
     setIsSearching(true)
     setErrorMessage('')
 
@@ -52,13 +63,32 @@ function App() {
         throw new Error('Could not find any of the entered postcodes.')
       }
 
+      const queries = locations.flatMap((location) =>
+        months.map((month) => ({ ...location, month })),
+      )
+      const crimeResults = await Promise.allSettled(
+        queries.map((query) => fetchCrimesForQuery(query)),
+      )
+      const successfulResults = crimeResults.flatMap((result) =>
+        result.status === 'fulfilled' ? result.value : [],
+      )
+      const failedCrimeRequests = crimeResults.filter(
+        (result) => result.status === 'rejected',
+      ).length
+
+      setCrimes(successfulResults)
       setResolvedPostcodes(locations.length)
       setHasSearched(true)
 
+      const warnings = []
       if (invalidPostcodes.length > 0) {
-        setErrorMessage(
-          `Could not find ${invalidPostcodes.join(', ')}. Showing valid areas.`,
-        )
+        warnings.push(`Could not find ${invalidPostcodes.join(', ')}.`)
+      }
+      if (failedCrimeRequests > 0) {
+        warnings.push(`${failedCrimeRequests} crime request(s) failed.`)
+      }
+      if (warnings.length > 0) {
+        setErrorMessage(`${warnings.join(' ')} Showing available results.`)
       }
     } catch (error) {
       setErrorMessage(
@@ -141,8 +171,8 @@ function App() {
           <div className="metric-grid">
             <article className="metric-card metric-card-primary">
               <p>Total crimes</p>
-              <strong>—</strong>
-              <span>{hasSearched ? 'Awaiting results' : 'Search to calculate'}</span>
+              <strong>{hasSearched ? crimes.length.toLocaleString() : '—'}</strong>
+              <span>{hasSearched ? 'Records returned' : 'Search to calculate'}</span>
             </article>
             <article className="metric-card">
               <p>Most common category</p>
@@ -167,8 +197,8 @@ function App() {
           </div>
           <div className="empty-results">
             <div className="empty-icon" aria-hidden="true">+</div>
-            <h3>{hasSearched ? 'Your results are on their way.' : 'Your results will live here.'}</h3>
-            <p>{hasSearched ? `Found ${resolvedPostcodes} area${resolvedPostcodes === 1 ? '' : 's'}. Crime data for ${criteria.from} to ${criteria.to} will appear here next.` : 'Run a postcode search to see crime type, street, date and outcome.'}</p>
+            <h3>{hasSearched ? `${crimes.length.toLocaleString()} crime records found.` : 'Your results will live here.'}</h3>
+            <p>{hasSearched ? `Found data for ${resolvedPostcodes} area${resolvedPostcodes === 1 ? '' : 's'} between ${criteria.from} and ${criteria.to}.` : 'Run a postcode search to see crime type, street, date and outcome.'}</p>
           </div>
         </section>
       </main>
