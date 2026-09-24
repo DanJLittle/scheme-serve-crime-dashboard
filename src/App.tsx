@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { lookupPostcodes } from './api/postcodeApi'
+import { parsePostcodes } from './utils/postcodes'
 import './App.css'
 
 type SearchCriteria = {
@@ -19,6 +21,9 @@ function App() {
     to: currentMonth,
   })
   const [hasSearched, setHasSearched] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [resolvedPostcodes, setResolvedPostcodes] = useState(0)
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target
@@ -28,9 +33,41 @@ function App() {
     }))
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setHasSearched(true)
+    const postcodes = parsePostcodes(criteria.postcodes)
+
+    if (postcodes.length === 0) {
+      setErrorMessage('Enter at least one postcode to search.')
+      return
+    }
+
+    setIsSearching(true)
+    setErrorMessage('')
+
+    try {
+      const { locations, invalidPostcodes } = await lookupPostcodes(postcodes)
+
+      if (locations.length === 0) {
+        throw new Error('Could not find any of the entered postcodes.')
+      }
+
+      setResolvedPostcodes(locations.length)
+      setHasSearched(true)
+
+      if (invalidPostcodes.length > 0) {
+        setErrorMessage(
+          `Could not find ${invalidPostcodes.join(', ')}. Showing valid areas.`,
+        )
+      }
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'The postcode lookup failed.',
+      )
+      setHasSearched(false)
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   return (
@@ -84,7 +121,11 @@ function App() {
               </label>
             </div>
 
-            <button type="submit">Search crimes <span aria-hidden="true">→</span></button>
+            <button type="submit" disabled={isSearching}>
+              {isSearching ? 'Finding areas...' : 'Search crimes'}{' '}
+              <span aria-hidden="true">→</span>
+            </button>
+            {errorMessage && <p className="form-message error-message" role="alert">{errorMessage}</p>}
           </form>
         </section>
 
@@ -94,7 +135,7 @@ function App() {
               <p className="section-label">02 / Overview</p>
               <h2 id="overview-heading">At a glance</h2>
             </div>
-            <p className="period-label">{hasSearched ? `${criteria.from} — ${criteria.to}` : 'No search yet'}</p>
+            <p className="period-label">{hasSearched ? `${resolvedPostcodes} area${resolvedPostcodes === 1 ? '' : 's'} found` : 'No search yet'}</p>
           </div>
 
           <div className="metric-grid">
@@ -127,7 +168,7 @@ function App() {
           <div className="empty-results">
             <div className="empty-icon" aria-hidden="true">+</div>
             <h3>{hasSearched ? 'Your results are on their way.' : 'Your results will live here.'}</h3>
-            <p>{hasSearched ? `Searching ${criteria.postcodes || 'the selected areas'} between ${criteria.from} and ${criteria.to}.` : 'Run a postcode search to see crime type, street, date and outcome.'}</p>
+            <p>{hasSearched ? `Found ${resolvedPostcodes} area${resolvedPostcodes === 1 ? '' : 's'}. Crime data for ${criteria.from} to ${criteria.to} will appear here next.` : 'Run a postcode search to see crime type, street, date and outcome.'}</p>
           </div>
         </section>
       </main>

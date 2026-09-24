@@ -1,32 +1,117 @@
-# React + TypeScript + Vite
+# SchemeServe Crime Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A React and TypeScript dashboard for searching UK crime data by postcode and date range.
 
-Currently, two official plugins are available:
+## Running locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Requirements:
 
-## React Compiler
+- Node.js 24 or later
+- npm
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Install dependencies and start the development server:
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Open the local URL printed by Vite, usually `http://localhost:5173/`.
+
+Useful commands:
+
+```bash
+npm run lint
+npm run build
+```
+
+## Current status
+
+Implemented:
+
+- React and TypeScript project setup with Vite
+- Responsive dashboard UI
+- Controlled postcode and month inputs
+- Current month as the default date range
+- Comma-separated postcode parsing, normalisation, and deduplication
+- Get The Data postcode lookup
+- Latitude and longitude conversion for valid postcodes
+- Loading and error feedback
+- Partial postcode failure handling: valid postcodes continue when another is invalid
+
+Not implemented yet:
+
+- UK Police crime API requests
+- Crime aggregation and summary metrics
+- Crime results table and filtering
+- URL query-string synchronisation
+- Historic searches, persistence, dark mode, and map view
+
+## Architecture
+
+The current request flow is:
+
+```text
+Form input
+  -> App.tsx submit handler
+  -> parsePostcodes()
+  -> lookupPostcodes()
+  -> Get The Data API
+  -> typed PostcodeLocation values
+  -> React state
+  -> loading, error, or success UI
+```
+
+Important files:
+
+- `src/App.tsx`: page composition, form state, submission, loading, and error state.
+- `src/api/postcodeApi.ts`: external postcode API requests and response normalisation.
+- `src/types/postcode.ts`: TypeScript models for API data used by the app.
+- `src/utils/postcodes.ts`: pure postcode parsing and deduplication logic.
+- `src/App.css`: dashboard component styling.
+- `src/index.css`: global colour, typography, and layout tokens.
+
+The API module deliberately hides the external response shape from the UI. The postcode API returns `status: "match"` and latitude/longitude as strings, so the API layer checks the status and converts coordinates to numbers before returning them to React.
+
+## Key technical decisions
+
+### Submit-based requests
+
+The app requests data when the form is submitted rather than on every keystroke. This avoids excessive API calls and makes the user's intent explicit. It also means the current implementation does not need a React effect for searching.
+
+### Partial failure handling
+
+Multiple postcode lookups use `Promise.allSettled` rather than `Promise.all`. A single invalid postcode should not discard valid postcodes from the same search. The UI reports invalid entries while continuing with successful locations.
+
+### Separation of concerns
+
+React owns user interaction and display state. API modules own network requests and response conversion. Utility functions own deterministic input processing. This keeps each part easier to test and explain.
+
+### Table before map
+
+The planned primary crime display is a filterable table rather than a map. A table directly satisfies the required postcode, date, street, crime type, and outcome fields, while a map would add more implementation and accessibility complexity within the time limit.
+
+### Visual design
+
+The UI uses a restrained teal accent, deep green contrast panel, cool off-white surfaces, and a small warm background tint. The intention is to feel like a calm analytical tool rather than an alarm-heavy crime product. Summary cards provide hierarchy, but the design avoids inventing crime numbers before the Police API is connected.
+
+## Trade-offs
+
+- **Submit-based search instead of live search:** this reduces unnecessary requests and is easier to reason about, but users do not see results update while typing.
+- **Table before map:** the table is faster to build and better for the required filtering workflow, but it gives less geographic context.
+- **Client-side aggregation:** aggregating the returned records in the browser keeps the app simple and transparent, but it would be less suitable for very large result sets.
+- **Partial failure handling:** keeping valid postcode results makes the app more resilient, but the user must review an error message when part of a search is incomplete.
+- **Direct browser API calls:** this keeps the project small and demonstrates frontend API integration, but a production system might use a backend proxy for caching, security, rate limiting, and consistent API access.
+
+### What I am not happy with yet
+
+The current submission does not yet show real crime records because the Police API integration is the next milestone. The visual shell is in place, but the dashboard will not demonstrate its full value until the API data is fetched, aggregated, and rendered in the table.
+
+## Next implementation milestone
+
+1. Add a typed Police API response model.
+2. Fetch crime records for each resolved coordinate and selected month.
+3. Support every month in the selected date range without unnecessary requests.
+4. Store normalised crime records in React state.
+5. Calculate total crimes, category counts, and outcome counts.
+6. Render the records in a filterable table.

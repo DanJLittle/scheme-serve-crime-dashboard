@@ -144,10 +144,26 @@
   background: var(--accent-dark);
 }
 
+.search-form button:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
+
 .search-form button:focus-visible,
 .filter-button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+
+.form-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.error-message {
+  color: #a33d3d;
 }
 
 .overview-section,
