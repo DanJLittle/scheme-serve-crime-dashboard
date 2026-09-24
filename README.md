@@ -41,11 +41,12 @@ Implemented:
 - Partial postcode failure handling: valid postcodes continue when another is invalid
 - Police API requests for each resolved postcode and selected month
 - Total crime count from returned records
+- Category and outcome summary metrics
+- Crime table with postcode, date, street, category, and outcome
+- Click-to-filter behaviour for postcode, category, and outcome
 
 Not implemented yet:
 
-- Crime aggregation and summary metrics
-- Crime results table and filtering
 - URL query-string synchronisation
 - Historic searches, persistence, dark mode, and map view
 
@@ -110,13 +111,10 @@ The UI uses a restrained teal accent, deep green contrast panel, cool off-white 
 
 ### What I am not happy with yet
 
-The current submission fetches real crime records and displays their total, but does not yet render the detailed records in the required filterable table. That is the next milestone.
+The current submission now fetches, summarises, and displays real crime records in a filterable table. The remaining work is URL query-string synchronisation and optional stretch goals.
 
 ## Next implementation milestone
 
-1. Add a typed Police API response model.
-2. Fetch crime records for each resolved coordinate and selected month.
-3. Support every month in the selected date range without unnecessary requests.
-4. Store normalised crime records in React state.
-5. Calculate total crimes, category counts, and outcome counts.
-6. Render the records in a filterable table.
+1. Add URL query-string synchronisation.
+2. Add focused component tests for loading, errors, and table filtering.
+3. Consider optional historic searches, persistence, dark mode, or a map if time allows.

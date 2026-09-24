@@ -24,3 +24,9 @@ export function summariseCrimes(crimes: CrimeRecord[]): CrimeSummary {
     { total: 0, categoryCounts: {}, outcomeCounts: {} },
   )
 }
+
+export function getMostCommon(counts: Record<string, number>) {
+  return Object.entries(counts).sort(([, firstCount], [, secondCount]) =>
+    secondCount - firstCount,
+  )[0]?.[0] ?? null
+}

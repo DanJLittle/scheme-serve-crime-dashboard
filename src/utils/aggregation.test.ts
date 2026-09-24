@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { summariseCrimes } from './aggregation'
+import { getMostCommon, summariseCrimes } from './aggregation'
 import type { CrimeRecord } from '../types/crime'
 
 const crimes: CrimeRecord[] = [
@@ -55,5 +55,10 @@ describe('summariseCrimes', () => {
       categoryCounts: {},
       outcomeCounts: {},
     })
+  })
+
+  it('returns the key with the highest count', () => {
+    expect(getMostCommon({ burglary: 2, shoplifting: 1 })).toBe('burglary')
+    expect(getMostCommon({})).toBeNull()
   })
 })

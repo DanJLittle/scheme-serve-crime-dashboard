@@ -216,7 +216,7 @@
   display: block;
   margin-bottom: 8px;
   font-family: var(--heading-font);
-  font-size: 2.7rem;
+  font-size: 2rem;
   font-weight: 500;
   line-height: 0.9;
 }
@@ -230,16 +230,229 @@
   color: #aebcb5;
 }
 
-.filter-button {
-  padding: 9px 13px;
-  color: var(--heading);
-  background: var(--surface);
-  border: 1px solid var(--line);
+.table-hint {
+  margin: 0 0 3px;
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
-.filter-button span {
-  margin-left: 8px;
-  color: var(--accent);
+.crime-table-wrapper {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.active-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 18px;
+  color: var(--muted);
+  background: rgba(47, 112, 104, 0.08);
+  font-size: 0.77rem;
+}
+
+.filter-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.active-filters button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.filter-chip {
+  border: 1px solid rgba(47, 112, 104, 0.2);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--accent-dark);
+  background: rgba(47, 112, 104, 0.1);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.filter-chip span {
+  margin-left: 5px;
+  font-size: 0.9rem;
+}
+
+.filter-chip:hover {
+  border-color: var(--accent);
+  background: rgba(47, 112, 104, 0.17);
+}
+
+.clear-filters {
+  border: 0;
+  padding: 0;
+  color: var(--accent-dark);
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.table-scroll-area {
+  overflow-x: auto;
+}
+
+.crime-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.crime-table th,
+.crime-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.crime-table th {
+  color: var(--muted);
+  background: rgba(23, 35, 31, 0.035);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.crime-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.crime-table tbody tr:hover {
+  background: rgba(47, 112, 104, 0.04);
+}
+
+.crime-table td {
+  color: var(--muted);
+}
+
+.table-filter {
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 4px 6px;
+  color: var(--heading);
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.table-filter:hover,
+.table-filter.selected {
+  color: var(--accent-dark);
+  background: rgba(47, 112, 104, 0.1);
+  border-color: rgba(47, 112, 104, 0.2);
+}
+
+.table-empty-state {
+  margin: 0;
+  padding: 44px 24px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.pagination-controls button {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 7px 10px;
+  color: var(--heading);
+  background: var(--surface);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pagination-controls .previous-page {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  background: transparent;
+}
+
+.pagination-controls .next-page {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+}
+
+.pagination-controls button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.pagination-controls .next-page:hover:not(:disabled) {
+  color: #fff;
+  background: var(--accent-dark);
+}
+
+.pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.back-to-top {
+  position: fixed;
+  right: clamp(20px, 4vw, 48px);
+  bottom: 24px;
+  z-index: 2;
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--accent);
+  box-shadow: 0 8px 20px rgba(23, 35, 31, 0.2);
+  font: inherit;
+  font-size: 1.45rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.back-to-top:hover {
+  background: var(--accent-dark);
+  transform: translateY(-3px);
+}
+
+.back-to-top:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
 }
 
 .empty-results {

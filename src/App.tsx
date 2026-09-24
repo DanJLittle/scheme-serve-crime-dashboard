@@ -1,19 +1,22 @@
 import { useState } from 'react'
 import { fetchCrimesForQuery } from './api/crimeApi'
 import { lookupPostcodes } from './api/postcodeApi'
+import { CrimeTable } from './components/CrimeTable'
+import { MetricCard } from './components/MetricCard'
+import { SearchForm } from './components/SearchForm'
 import type { CrimeRecord } from './types/crime'
+import type { SearchCriteria } from './types/search'
+import { getMostCommon, summariseCrimes } from './utils/aggregation'
 import { parsePostcodes } from './utils/postcodes'
 import { getMonthsInRange } from './utils/months'
 import './App.css'
 
-type SearchCriteria = {
-  postcodes: string
-  from: string
-  to: string
-}
-
 function getCurrentMonth() {
   return new Date().toISOString().slice(0, 7)
+}
+
+function formatLabel(value: string | null) {
+  return value ? value.replace(/-/g, ' ') : '—'
 }
 
 function App() {
@@ -28,6 +31,9 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('')
   const [resolvedPostcodes, setResolvedPostcodes] = useState(0)
   const [crimes, setCrimes] = useState<CrimeRecord[]>([])
+  const crimeSummary = summariseCrimes(crimes)
+  const mostCommonCategory = getMostCommon(crimeSummary.categoryCounts)
+  const mostCommonOutcome = getMostCommon(crimeSummary.outcomeCounts)
 
   function handleInputChange(event: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target
@@ -117,46 +123,13 @@ function App() {
             <p>Compare one or more areas across a selected period.</p>
           </div>
 
-          <form className="search-form" onSubmit={handleSubmit}>
-            <label className="postcode-field">
-              <span>Postcode(s)</span>
-              <input
-                name="postcodes"
-                type="text"
-                value={criteria.postcodes}
-                onChange={handleInputChange}
-                placeholder="M1 1AE, SW1A 1AA"
-              />
-              <small>Separate multiple postcodes with commas.</small>
-            </label>
-
-            <div className="date-fields">
-              <label>
-                <span>From</span>
-                <input
-                  name="from"
-                  type="month"
-                  value={criteria.from}
-                  onChange={handleInputChange}
-                />
-              </label>
-              <label>
-                <span>To</span>
-                <input
-                  name="to"
-                  type="month"
-                  value={criteria.to}
-                  onChange={handleInputChange}
-                />
-              </label>
-            </div>
-
-            <button type="submit" disabled={isSearching}>
-              {isSearching ? 'Finding areas...' : 'Search crimes'}{' '}
-              <span aria-hidden="true">→</span>
-            </button>
-            {errorMessage && <p className="form-message error-message" role="alert">{errorMessage}</p>}
-          </form>
+          <SearchForm
+            criteria={criteria}
+            isSearching={isSearching}
+            errorMessage={errorMessage}
+            onInputChange={handleInputChange}
+            onSubmit={handleSubmit}
+          />
         </section>
 
         <section className="overview-section" id="overview" aria-labelledby="overview-heading">
@@ -169,21 +142,22 @@ function App() {
           </div>
 
           <div className="metric-grid">
-            <article className="metric-card metric-card-primary">
-              <p>Total crimes</p>
-              <strong>{hasSearched ? crimes.length.toLocaleString() : '—'}</strong>
-              <span>{hasSearched ? 'Records returned' : 'Search to calculate'}</span>
-            </article>
-            <article className="metric-card">
-              <p>Most common category</p>
-              <strong>—</strong>
-              <span>Crime categories will appear here</span>
-            </article>
-            <article className="metric-card">
-              <p>Outcome status</p>
-              <strong>—</strong>
-              <span>Outcome data will appear here</span>
-            </article>
+            <MetricCard
+              label="Total crimes"
+              value={hasSearched ? crimeSummary.total.toLocaleString() : '—'}
+              detail={hasSearched ? 'Records returned' : 'Search to calculate'}
+              primary
+            />
+            <MetricCard
+              label="Most common category"
+              value={formatLabel(mostCommonCategory)}
+              detail={mostCommonCategory ? `${crimeSummary.categoryCounts[mostCommonCategory]} records` : 'Crime categories will appear here'}
+            />
+            <MetricCard
+              label="Most common outcome status"
+              value={formatLabel(mostCommonOutcome)}
+              detail={mostCommonOutcome ? `${crimeSummary.outcomeCounts[mostCommonOutcome]} records` : 'Outcome data will appear here'}
+            />
           </div>
         </section>
 
@@ -191,15 +165,19 @@ function App() {
           <div className="section-heading">
             <div>
               <p className="section-label">03 / Detailed results</p>
-              <h2 id="results-heading">Recent crimes</h2>
+              <h2 id="results-heading">Full list of crimes</h2>
             </div>
-            <button className="filter-button" type="button">Filter <span aria-hidden="true">⌄</span></button>
+            <p className="table-hint">Select a postcode, crime type or outcome to filter</p>
           </div>
-          <div className="empty-results">
-            <div className="empty-icon" aria-hidden="true">+</div>
-            <h3>{hasSearched ? `${crimes.length.toLocaleString()} crime records found.` : 'Your results will live here.'}</h3>
-            <p>{hasSearched ? `Found data for ${resolvedPostcodes} area${resolvedPostcodes === 1 ? '' : 's'} between ${criteria.from} and ${criteria.to}.` : 'Run a postcode search to see crime type, street, date and outcome.'}</p>
-          </div>
+          {hasSearched ? (
+            <CrimeTable crimes={crimes} />
+          ) : (
+            <div className="empty-results">
+              <div className="empty-icon" aria-hidden="true">+</div>
+              <h3>Your results will live here.</h3>
+              <p>Run a postcode search to see crime type, street, date and outcome.</p>
+            </div>
+          )}
         </section>
       </main>
     </div>
