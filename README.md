@@ -22,6 +22,7 @@ Useful commands:
 
 ```bash
 npm run lint
+npm test
 npm run build
 ```
 
